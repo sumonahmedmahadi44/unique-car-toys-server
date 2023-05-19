@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion,ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -30,6 +30,102 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+
+
+    const toyCollection = client.db("toyDB").collection("addToys");
+
+        app.get('/allToy', async (req, res) => {
+            const toys = await toyCollection.find().limit(20).toArray();
+            res.send(toys);
+        })
+
+
+        // Creating index on two fields
+        const indexKeys = { title: 1, category: 1 }; // Replace field1 and field2 with your actual field names
+        const indexOptions = { name: "titleCategory" }; // Replace index_name with the desired index name
+        const result = await toyCollection.createIndex(indexKeys, indexOptions);
+
+        app.get('/searchByName/:text', async (req, res) => {
+            const searchText = req.params.text;
+            const result = await toyCollection.find({
+                $or: [
+                    { toyName: { $regex: searchText, $options: "i" } }
+                ],
+            })
+                .toArray()
+            res.send(result)
+        })
+
+        app.post("/post-toys", async (req, res) => {
+            const body = req.body;
+            body.createdAt = new Date();
+            console.log(body);
+            const result = await toyCollection.insertOne(body);
+            if (result?.insertedId) {
+                return res.status(200).send(result);
+            } else {
+                return res.status(404).send({
+                    message: "can not insert try again leter",
+                    status: false,
+                });
+            }
+        });
+
+        app.get("/singleToy/:id", async (req, res) => {
+            console.log(req.params.id);
+            const id = req.params;
+            const jobs = await toyCollection.findOne({
+                _id: new ObjectId(id),
+            });
+            res.send(jobs);
+        });
+
+
+        app.get('/myToys/:email', async (req, res) => {
+            const email = req.params.email
+            console.log(req.params.email)
+            const result = await toyCollection.find({ postedBy: email }).toArray()
+            res.send(result)
+        })
+
+
+        app.get('/post-toys/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await toyCollection.findOne(query);
+            res.send(result)
+        })
+
+        app.put('/post-toys/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true };
+            const updatedToys = req.body;
+            const toys = {
+                $set: {
+                    userName: updatedToys.userName,
+                    image: updatedToys.image,
+                    postedBy: updatedToys.postedBy,
+                    quantity: updatedToys.quantity,
+                    description: updatedToys.description,
+                    price: updatedToys.price,
+                    toyName: updatedToys.toyName,
+                    subCategory: updatedToys.subCategory,
+                    ratings: updatedToys.ratings,
+                }
+            }
+            const result = await toyCollection.updateOne(filter, toys, options)
+            res.send(result)
+        })
+
+        app.delete('/post-toys/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await toyCollection.deleteOne(query);
+            res.send(result)
+        })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
