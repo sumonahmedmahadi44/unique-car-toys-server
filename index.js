@@ -38,6 +38,12 @@ async function run() {
         app.get('/allToy', async (req, res) => {
             const toys = await toyCollection.find().limit(20).toArray();
             res.send(toys);
+        });
+
+        
+        app.get('/subCategory', async (req, res) => {
+            const toys = await toyCollection.find().toArray();
+            res.send(toys);
         })
 
 
