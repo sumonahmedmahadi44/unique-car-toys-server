@@ -41,9 +41,10 @@ async function run() {
         });
 
         
-        app.get('/subCategory', async (req, res) => {
-            const toys = await toyCollection.find().toArray();
-            res.send(toys);
+        app.get('/allToy/:subcategory', async (req, res) => {
+            const category = req.params.subcategory;
+            const result = await toyCollection.find({ subcategory: category }).toArray()
+            res.send(result)
         })
 
 
@@ -65,7 +66,6 @@ async function run() {
 
         app.post("/post-toys", async (req, res) => {
             const body = req.body;
-            body.createdAt = new Date();
             console.log(body);
             const result = await toyCollection.insertOne(body);
             if (result?.insertedId) {
@@ -89,9 +89,10 @@ async function run() {
 
 
         app.get('/myToys/:email', async (req, res) => {
+            const  price= req.query.price
             const email = req.params.email
             console.log(req.params.email)
-            const result = await toyCollection.find({ postedBy: email }).toArray()
+            const result = await toyCollection.find({ postedBy: email },{price:price}).sort({price:-1}).toArray()
             res.send(result)
         })
 
